@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Str;
 
 class LoginController extends Controller
 {
@@ -21,6 +22,7 @@ class LoginController extends Controller
         return view('dashboard', compact('data'));
     }
 
+    // on login
     public function validateLogin(Request $request)
     {
         $user = User::where(['email' => $request->email, 'status' => 1])->first();
@@ -55,20 +57,22 @@ class LoginController extends Controller
     {
         $user = User::where('username', '=', $request->username)->first();
         if ($request->input('email') != $user->email) {
-            // verify email
-            Mail::to($user->email)->send(new SendEmail($user));
+            $user->status = 0;
+            $user->verify_token = Str::random(40);
+            $user->email = $request->input('email');
             $user->first_name = $request->input('first_name');
             $user->last_name = $request->input('last_name');
-            $user->email = $request->input('email');
             if ($request->input('password')) {
                 $user->password = $request->input('password');
             }
             $user->update();
+            // verify email
+            Mail::to($request->input('email'))->send(new SendEmail($user));
             // logout user
-            if (Session::has('loginId')) {
-                Session::pull('loginId');
-            }
-            return redirect('/')->with('status', 'A verification link has been sent to your updated email ID. Please verify to login.');
+            return response()->json([
+                'redirect' => 'logout',
+                'message' => 'A verification link has been sent to email address . Please click the link and login again.'
+            ]);
         } else {
             $user->first_name = $request->input('first_name');
             $user->last_name = $request->input('last_name');
