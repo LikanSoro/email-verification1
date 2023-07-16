@@ -108,7 +108,13 @@ $(document).ready(function(){
 				data: data,
 				dataType: "json",
 				success: function (response) {
-					showAlertAndReload();
+					if(response.redirect){
+						alert(response.message);
+					window.location.href = response.redirect;
+					}
+					else{
+						showAlertAndReload();
+					}
 				}
 			});
 		}
